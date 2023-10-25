@@ -12,7 +12,6 @@ Engine/Dependencies/enTT
 # User-specific files
 *.rsuser
 *.suo
-*.user
 *.userosscache
 *.sln.docstates
 
