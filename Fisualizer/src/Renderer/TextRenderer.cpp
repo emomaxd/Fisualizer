@@ -179,3 +179,65 @@ void TextRenderer::RenderText(std::string text, float x, float y, float scale, g
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+
+void TextRenderer::RenderTextBatch(const std::vector<std::pair<std::string, glm::vec3>>& texts, float scale, const glm::vec3& color)
+{
+    // Activate corresponding render state
+    m_shader.Bind();
+    glUniform3f(glGetUniformLocation(m_shader.getProgramID(), "textColor"), color.x, color.y, color.z);
+    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(VAO);
+
+    cameraPosition = globalPosition;
+    cameraTarget = globalCameraTarget;
+    cameraUp = { 0, 1, 0 };
+
+    glm::mat4 viewMatrix = glm::lookAt(cameraPosition, cameraTarget, cameraUp);
+    glm::mat4 projectionMatrix = glm::perspective(glm::radians(45.0f), WIDTH / HEIGHT, 1.0f, 100.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(m_shader.getProgramID(), "projection"), 1, GL_FALSE, glm::value_ptr(projectionMatrix * viewMatrix));
+    
+    Character ch;
+    // Iterate through all texts
+    for (size_t i = 0; i < texts.size(); ++i)
+    {
+        const std::string& text = texts[i].first;
+        glm::vec3 position = texts[i].second;
+
+        // Prepare vertices for all characters in the text
+        std::vector<float> vertices;
+        for (char c : text)
+        {
+            ch = Characters[c];
+
+            float xpos = position.x + ch.Bearing.x * scale;
+            float ypos = position.y - (ch.Size.y - ch.Bearing.y) * scale;
+
+            float w = ch.Size.x * scale;
+            float h = ch.Size.y * scale;
+
+            // Add vertices to the batch
+            vertices.insert(vertices.end(), {
+                xpos, ypos + h, 0.0f, 0.0f,
+                xpos, ypos, 0.0f, 1.0f,
+                xpos + w, ypos, 1.0f, 1.0f,
+                xpos, ypos + h, 0.0f, 0.0f,
+                xpos + w, ypos, 1.0f, 1.0f,
+                xpos + w, ypos + h, 1.0f, 0.0f
+                });
+
+            // Advance the position for the next character
+            position.x += (ch.Advance >> 6) * scale;
+        }
+
+        // Render the batch of characters for this text
+        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data()); // Update VBO with the batched vertices
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size() / 4));
+    }
+
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}

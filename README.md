@@ -1,14 +1,13 @@
-Only includes solution for now
+Only includes Visual Studio Solution for now
 
 Some features : 
 
--Scroll zoom-in zoom-out
--Camera movement while holding mouse click
+-Scroll zoom-in, zoom-out
 
-!!! Parser only parses polynomials with 1 digit exponents (x^9 - x^7 - 3x^3 + 55)
+-Camera movement while holding mid mouse button
+
+!!! Parser only parses polynomials with 1 digit exponents and coefficients (x^9 - x^7 - 3x^3 + 5)
 
 Parser needs improvement for sure
-
-!!! After I implemented the mouse controls I could not interact with ImGUI 
 
 ![Alt text](Fisualizer.png)

@@ -33,6 +33,8 @@ public:
 
 	void RenderText(std::string text, float x, float y, float scale, glm::vec3 color);
 
+	void RenderTextBatch(const std::vector<std::pair<std::string, glm::vec3>>& texts, float scale, const glm::vec3& color);
+
 
 private:
 	FT_Library  library;

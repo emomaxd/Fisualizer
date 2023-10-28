@@ -52,6 +52,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         }
 
     }
+    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
     
 }
 
@@ -62,12 +63,13 @@ static void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
     if (yOffset < 0.0f && globalPosition.z < 98.0f) {
         globalPosition.z += 1.2f * -yOffset;
     }
+    ImGui_ImplGlfw_ScrollCallback(window, xOffset, yOffset);
 }
 
 bool isMousePressed = false;
 
 static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
         if (action == GLFW_PRESS) {
             
             isMousePressed = true;
@@ -77,6 +79,8 @@ static void mouseButtonCallback(GLFWwindow* window, int button, int action, int 
             isMousePressed = false;
         }
     }
+    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+
 }
 
 static void cursorPositionCallback(GLFWwindow* window, double xPos, double yPos) {
@@ -102,11 +106,13 @@ static void cursorPositionCallback(GLFWwindow* window, double xPos, double yPos)
     }
     lastX = xPos;
     lastY = yPos;
+    ImGui_ImplGlfw_CursorPosCallback(window, xPos, yPos);
 }
 
 inline bool isCloseToZero(float value, float tolerance = 1e-6) { return std::abs(value) < tolerance; }
 
 
+std::vector<std::pair<std::string, glm::vec3>> texts;
 
 static void findExtremePoints(const std::string& function, std::vector<Vertex>& destination, float minX, float maxX) {
 
@@ -125,8 +131,8 @@ static void findExtremePoints(const std::string& function, std::vector<Vertex>& 
         
         float y = fn(x);
         float derivative = (fn(x + h) - fn(x)) / h;
-        
-        if (isCloseToZero(derivative, 1e-4)) {
+
+        if (isCloseToZero(derivative, 1e-10)) {
             //std::cout << "Extreme point found on X = " << x << std::endl;
 
             bool updated = false;
@@ -149,6 +155,7 @@ static void findExtremePoints(const std::string& function, std::vector<Vertex>& 
                 //std::cout << "new EXTREME POINT pushed to the vector\n";
                 destination.push_back({ glm::vec3(x, y, 0), extremePointColor });
             }
+            texts.push_back({ std::to_string(y), { 0, y, 0 } });
         }
     }
 }
@@ -165,8 +172,9 @@ static void findRoots(const std::string& function, std::vector<Vertex>& destinat
     glm::vec4 rootColor(0, 0, 1, 1);
 
     for (float x = minX; x < maxX; x += step) {
+        x = std::round(x * 100.0f) / 100.f;
         float y = fn(x);
-        if (isCloseToZero(y, 1e-3) || isCloseToZero(x, 1e-3) ) {
+        if ( x == 0 || y == 0 ) {
             //std::cout << "Found a root on X = " << x << std::endl;
             bool updated = false;
 
@@ -189,6 +197,10 @@ static void findRoots(const std::string& function, std::vector<Vertex>& destinat
                 destination.push_back({ glm::vec3(x, y, 0), rootColor });
             }
 
+            // if x is equal 0 render the y value on the screen
+            if(x == 0)
+                texts.push_back({ std::to_string(y), { 0, y, 0 } });
+
         }
     }
     
@@ -197,7 +209,7 @@ static void findRoots(const std::string& function, std::vector<Vertex>& destinat
 
 static void processFunction(const std::string& function, std::vector<Vertex>& coordinates, float minX, float maxX) {
 
-    constexpr float step = 0.0001f;
+    constexpr float step = 0.001f;
 
     coordinates.clear();
 
@@ -222,13 +234,42 @@ static void drawLineOnExtremes(const std::vector<Vertex>& coordinates, float ran
 }
 
 
+static void turnTextPositionsIntoString(std::vector<std::pair<std::string, glm::vec3>>& destination, float range) {
+    texts.clear();
+    float curr = -range;
+    float gap = globalPosition.z / 25.0f;
+    float currPos = -range;
+    int precision = 2;
 
+    while (curr <= range) {
+
+        std::string text = "";
+        if (48 + curr < 48)
+            precision = 3;
+
+
+        else
+            precision = 2;
+
+        // x positions pushed
+        destination.push_back({ std::to_string(curr).substr(0, precision + 1), {curr, 0, 0} });
+
+
+        curr += gap;
+        currPos += gap;
+    }
+}
+
+static void drawText(TextRenderer& tr, float scale) {
+    tr.RenderTextBatch(texts, scale, {1, 1, 1});
+}
 
 static void drawCoordinateTexts(TextRenderer& textRenderer, float range, float textSize) {
+    texts.clear();
     float curr = -range;
     float gap = globalPosition.z / 25.0f;
     float pos = -range;
-    float precision = 2;
+    int precision = 2;
      
     while (curr <= range) {
         std::string text = "";
@@ -246,17 +287,21 @@ static void drawCoordinateTexts(TextRenderer& textRenderer, float range, float t
         curr += gap;
         pos += gap;
     }
+    
 }
 
 void Engine::start(){
     
     auto GLFWwindow = window->getWindow();
+    
 
  
     glfwSetKeyCallback(GLFWwindow, key_callback);
     glfwSetScrollCallback(GLFWwindow, scrollCallback);
     glfwSetMouseButtonCallback(GLFWwindow, mouseButtonCallback);
     glfwSetCursorPosCallback(GLFWwindow, cursorPositionCallback);
+
+
 
     Shader shader("src/Renderer/Shader/BasicShader.glsl");
     shader.Bind();
@@ -287,33 +332,42 @@ void Engine::start(){
 
     static float range = 5.0f;
 
-    std::string function = "x^3 -4x";
+    std::string function = "x^3 - 4x";
 
     std::vector<Vertex> coordinates;
     std::vector<Vertex> rootCoordinates;
     std::vector<Vertex> extremePointCoordinates;
 
-    processFunction(function, coordinates, -range, range);
-    findRoots(function, rootCoordinates, -range, range);
-    findExtremePoints(function, extremePointCoordinates, -range, range);
 
 
-
-
-    float previousRange = range;
+    std::string previousFunction = "";
+    float previousRange = -1;
 
     ImGuiIO& io = ImGui::GetIO();
+    
 
     while (!glfwWindowShouldClose(GLFWwindow))
     {
-        if(range != previousRange)
+        float textSize = 2 * globalPosition.z / 5000;
+
+        if (function != previousFunction || range != previousRange) {
             processFunction(function, coordinates, -range, range);
+            findRoots(function, rootCoordinates, -range, range);
+            findExtremePoints(function, extremePointCoordinates, -range, range);
+            //turnTextPositionsIntoString(texts, range);
+            
+            previousFunction = function;
+            previousRange = range;
+        }
 
         previousRange = range;
 
-        window->ClearScreen();
 
         window->ImGuiNewFrame();
+
+
+        window->ClearScreen();
+
 
 
         shader.Bind();
@@ -354,9 +408,6 @@ void Engine::start(){
                 // This block will execute when the user enters text and presses Enter.
                 // inputTextBuffer contains the text entered by the user.
                 function = inputTextBuffer;
-                processFunction(function, coordinates, -range, range);
-                findRoots(function, rootCoordinates, -range, range);
-                findExtremePoints(function, extremePointCoordinates, -range, range);
 
             }
 
@@ -368,10 +419,9 @@ void Engine::start(){
         // IMGUI
         // cameraZ : 50 size : 0.02f
         
-        float textSize = 2* globalPosition.z / 5000;
     
         drawCoordinateTexts(textRenderer ,range, textSize);
-
+        //drawText(textRenderer, textSize);
 
         window->ImGuiRender();
 
