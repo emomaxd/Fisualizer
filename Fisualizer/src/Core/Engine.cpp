@@ -21,35 +21,16 @@ Engine::~Engine(){
     delete window;
 
 }
+bool canProcessFunction = true;
 
 glm::vec3 startingTextPosition(0, 0, 0);
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     
     if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_A) {
-            globalPosition.x -= 1.0f;
-            globalCameraTarget.x -= 1.0f;
+        if (key == GLFW_KEY_ENTER) {
+            canProcessFunction = true;
         }
-        if (key == GLFW_KEY_D) {
-            globalPosition.x += 1.0f;
-            globalCameraTarget.x += 1.0f;
-        }
-        if (key == GLFW_KEY_W) {
-            globalPosition.y += 1.0f;
-            globalCameraTarget.y += 1.0f;
-        }
-        if (key == GLFW_KEY_S) {
-            globalPosition.y -= 1.0f;
-            globalCameraTarget.y -= 1.0f;
-        }
-        if (key == GLFW_KEY_Z) {
-            globalPosition.z += 1.0f;
-            globalCameraTarget.z += 1.0f;
-        }
-        if (key == GLFW_KEY_C) {
-            globalPosition.z -= 1.0f;
-            globalCameraTarget.z -= 1.0f;
-        }
+        
 
     }
     ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
@@ -120,7 +101,7 @@ static void findExtremePoints(const std::string& function, std::vector<Vertex>& 
 
     const float step = 0.0001f;
 
-    const float h = 0.000001f;
+    const float h = 0.0001f;
 
     auto fn = Parser::Parse(function);
 
@@ -132,7 +113,7 @@ static void findExtremePoints(const std::string& function, std::vector<Vertex>& 
         float y = fn(x);
         float derivative = (fn(x + h) - fn(x)) / h;
 
-        if (isCloseToZero(derivative, 1e-10)) {
+        if (isCloseToZero(derivative, 1e-6)) {
             //std::cout << "Extreme point found on X = " << x << std::endl;
 
             bool updated = false;
@@ -164,7 +145,7 @@ static void findRoots(const std::string& function, std::vector<Vertex>& destinat
     
     destination.clear();
 
-    const float step = 0.1f;
+    const float step = 0.0001f;
 
     auto fn = Parser::Parse(function);
 
@@ -172,9 +153,11 @@ static void findRoots(const std::string& function, std::vector<Vertex>& destinat
     glm::vec4 rootColor(0, 0, 1, 1);
 
     for (float x = minX; x < maxX; x += step) {
-        x = std::round(x * 100.0f) / 100.f;
         float y = fn(x);
-        if ( x == 0 || y == 0 ) {
+        //x = std::round(x * 100.0f) / 100.0f;
+        
+        //y = std::round(x * 10.0f) / 10.0f;
+        if ( x == 0.0f || isCloseToZero(y, 1e-2)) {
             //std::cout << "Found a root on X = " << x << std::endl;
             bool updated = false;
 
@@ -209,7 +192,7 @@ static void findRoots(const std::string& function, std::vector<Vertex>& destinat
 
 static void processFunction(const std::string& function, std::vector<Vertex>& coordinates, float minX, float maxX) {
 
-    constexpr float step = 0.001f;
+    constexpr float step = 0.0001f;
 
     coordinates.clear();
 
@@ -267,7 +250,7 @@ static void drawText(TextRenderer& tr, float scale) {
 static void drawCoordinateTexts(TextRenderer& textRenderer, float range, float textSize) {
     texts.clear();
     float curr = -range;
-    float gap = globalPosition.z / 25.0f;
+    float gap = globalPosition.z / 30.0f;
     float pos = -range;
     int precision = 2;
      
@@ -350,12 +333,13 @@ void Engine::start(){
     {
         float textSize = 2 * globalPosition.z / 5000;
 
-        if (function != previousFunction || range != previousRange) {
+        // if user presses "ENTER"
+        if ( canProcessFunction ) {
             processFunction(function, coordinates, -range, range);
             findRoots(function, rootCoordinates, -range, range);
             findExtremePoints(function, extremePointCoordinates, -range, range);
             //turnTextPositionsIntoString(texts, range);
-            
+            canProcessFunction = false;
             previousFunction = function;
             previousRange = range;
         }
@@ -408,7 +392,8 @@ void Engine::start(){
                 // This block will execute when the user enters text and presses Enter.
                 // inputTextBuffer contains the text entered by the user.
                 function = inputTextBuffer;
-
+                if (function[function.size() - 1] == '*')
+                    canProcessFunction = true;
             }
 
 
