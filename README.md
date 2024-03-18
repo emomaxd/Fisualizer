@@ -1,3 +1,5 @@
+*Closed*
+
 Only includes Visual Studio Solution for now
 
 !! Press "ENTER" after any changes that you made
