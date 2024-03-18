@@ -19,7 +19,7 @@ void Window::Init() {
 
 void Window::ClearScreen() {
 	glViewport(0, 0, WIDTH, HEIGHT);
-	glClearColor(0.1f, 0.4f, 0.7f, 1.0f);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 

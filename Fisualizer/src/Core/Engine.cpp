@@ -206,7 +206,7 @@ static void processFunction(const std::string& function, std::vector<Vertex>& co
 
     for (float x = minX; x <= maxX; x += step) {
         float y = expression(x);
-        coordinates.push_back({ glm::vec3(x, y, 0), glm::vec4(1, 0, 0, 1) });
+        coordinates.push_back({ glm::vec3(x, y, 0), glm::vec4(1, 1, 1, 0.8f) });
     }
 
 }
@@ -334,8 +334,8 @@ void Engine::start(){
         
         Renderer::drawFunction(coordinates);
 
-        drawCircleOnRoots(rootCoordinates, 2*globalPosition.z / 500, {0.5f, 0.5f, 0.5f, 1.0f});
-        drawLineOnExtremes(extremePointCoordinates, 0.5f, { 0.2f, 0.2f, 0.2f, 0.5f });
+        drawCircleOnRoots(rootCoordinates, 2*globalPosition.z / 500, {0.6f, 0.5f, 0.5f, 1.0f});
+        drawLineOnExtremes(extremePointCoordinates, 0.5f, { 0.4f, 0.2f, 0.2f, 0.5f });
 
         // IMGUI
 

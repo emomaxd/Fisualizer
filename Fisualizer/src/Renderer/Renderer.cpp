@@ -60,7 +60,7 @@ void Renderer::drawCoordinateSystem(float xStart, float yStart, float zStart, fl
 
     std::vector<Vertex> points;
 
-    glm::vec4 color(0, 0, 0, 1);
+    glm::vec4 color(0.5f, 0.5f, 0.5f, 1);
  
     // Draw the X-axis (right)
     for (float x = xStart; x <= xEnd; x += step) {
